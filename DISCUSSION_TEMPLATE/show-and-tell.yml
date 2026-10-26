@@ -1,0 +1,23 @@
+title: "[Show & tell] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Show how you use Seek, share a useful search, or tell us about your setup.
+  - type: textarea
+    id: showcase
+    attributes:
+      label: What would you like to share?
+      description: Describe your setup, workflow, or favorite way to use Seek.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Search or workflow example
+      description: Optional — share a query or steps others can try.
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshot or other media
+      description: Optional — drag an image into the discussion after submitting, or paste a link here.

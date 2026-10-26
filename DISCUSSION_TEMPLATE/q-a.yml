@@ -1,0 +1,25 @@
+title: "[Q&A] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a question about using Seek. For something broken, please use the Bug report issue template instead.
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like to know?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What have you tried?
+      description: Include the steps or search query that are relevant to your question.
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which mode are you using?
+      options:
+        - Normal (no admin)
+        - Instant mode (admin)
+        - Not sure
