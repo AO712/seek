@@ -1,0 +1,25 @@
+title: "[Feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share an idea or tell me what would make Seek more useful for you.
+  - type: textarea
+    id: change
+    attributes:
+      label: What would you change or add?
+      description: Describe the problem or idea in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What would this help you do?
+      description: Tell me how you use file search and where Seek falls short.
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: How do you handle this today?
+      description: Optional — mention any workaround or other tool you use.
