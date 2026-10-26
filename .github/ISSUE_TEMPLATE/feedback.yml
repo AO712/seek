@@ -1,0 +1,17 @@
+name: Feedback / what should I improve?
+description: Tell me what you'd change or add
+labels: ["feedback"]
+body:
+  - type: textarea
+    id: first
+    attributes:
+      label: What's the first thing you'd change?
+    validations: { required: true }
+  - type: textarea
+    id: switch
+    attributes:
+      label: What one feature would make you switch to Seek full-time?
+  - type: input
+    id: usecase
+    attributes:
+      label: What do you mostly use file search for? (work, code, photos, school...)

@@ -1,0 +1,25 @@
+name: Bug report
+description: Something broke or looks wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Seek version and Windows version
+    validations: { required: true }
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which mode?
+      options: ["Normal (no admin)", "Instant mode (admin)", "Not sure"]
+  - type: textarea
+    id: log
+    attributes:
+      label: index.log (if indexing or instant mode is involved)
+      description: Found at %LOCALAPPDATA%\Seek\index.log
+      render: text

@@ -1,0 +1,7 @@
+#include <winuser.h>
+1 RT_MANIFEST "seek.manifest"
+1 ICON "seek.ico"
+10 RCDATA "assets/lockup_for_light.png"
+11 RCDATA "assets/lockup_for_dark.png"
+12 RCDATA "assets/mark_for_light.png"
+13 RCDATA "assets/mark_for_dark.png"
