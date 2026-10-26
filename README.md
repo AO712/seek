@@ -1,4 +1,5 @@
 <img width="1052" height="521" alt="seek" src="https://github.com/user-attachments/assets/52a44bd1-112a-4d6a-aa2d-232275edf30f" />
+
 # Seek
 
 Search-first file explorer for Windows 11. One 0.5 MB exe, no installer, no runtime.
