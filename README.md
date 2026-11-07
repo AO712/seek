@@ -25,7 +25,3 @@ Ctrl+C/X/V files · Ctrl+Shift+N new folder · Ctrl+P pin · Ctrl+H hidden files
 ## Tests
 `tests\selftest.inc` is a fake NTFS volume + change journal that drives the real admin-mode code
 (compile with `-DSEEK_SELFTEST`, run under Wine). Scenarios: normal, `SEEK_FT_MODE=break`, `SEEK_FT_MODE=journalfail`.
-
-## License
-Seek is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
-Commercial use requires permission from the copyright holder. This is source-available, not an OSI-approved open-source license.

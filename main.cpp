@@ -250,6 +250,15 @@ static void hDel(Hash& h, uint64_t key) {
     }
 }
 
+static int folderRank(const wchar_t* nm) {                 // lower = scanned sooner; only matters for depth==0 (profile/drive roots)
+    static const wchar_t* const first[]  = {L"Desktop", L"Documents", L"Downloads", L"Pictures", L"Videos", L"Music", 0};
+    static const wchar_t* const last[]   = {L"AppData", L".vscode", L".nuget", L".gradle", L".m2", L".cargo", L".rustup",
+                                            L".npm", L".cache", L".android", L"scoop", L"go", L"Application Data", 0};
+    for (int i = 0; first[i]; i++) if (!lstrcmpiW(nm, first[i])) return 0;
+    if (!_wcsnicmp(nm, L"OneDrive", 8)) return 1;
+    for (int i = 0; last[i]; i++) if (!lstrcmpiW(nm, last[i])) return 3;
+    return 2;
+}
 static bool isSkipName(const wchar_t* nm) { for (int i = 0; SKIP_DIRS[i]; i++) if (lstrcmpiW(nm, SKIP_DIRS[i]) == 0) return true; return false; }
 
 // ── directory walker (fallback path) ──
@@ -301,14 +310,24 @@ static void scanDir(wchar_t* path, int plen, int32_t dirIdx, int depth) {
     static DWORD lastPost; DWORD now = GetTickCount();
     if (now - lastPost > 120) { lastPost = now; PostMessageW(g_hwnd, WM_IDX, 0, 0); }
 
-    for (size_t k = 0; k < te.n; k++) {
-        if (!rec.p[k]) continue;
+    size_t* ord = (size_t*)malloc(te.n * sizeof(size_t)); for (size_t k = 0; k < te.n; k++) ord[k] = k;
+    if (depth == 0 && te.n > 1) {                               // stable sort by folderRank: Desktop/Documents/... first, caches last
+        int* rk = (int*)malloc(te.n * sizeof(int));
+        for (size_t k = 0; k < te.n; k++) rk[k] = rec.p[k] ? folderRank(tp.p + te.p[k].off) : 2;
+        for (size_t a = 1; a < te.n; a++) { size_t ov = ord[a]; int rv = rk[ov]; size_t b = a; while (b > 0 && rk[ord[b-1]] > rv) { ord[b] = ord[b-1]; b--; } ord[b] = ov; }
+        free(rk);
+    }
+    for (size_t j = 0; j < te.n; j++) {
+        size_t k = ord[j]; if (!rec.p[k]) continue;
         int nl = te.p[k].len; const wchar_t* nm = tp.p + te.p[k].off;
         if (plen + nl + 2 >= PM) continue;
         memcpy(path + plen, nm, nl * 2); path[plen + nl] = L'\\'; path[plen + nl + 1] = 0;
+        DWORD tw0 = 0; if (depth == 0) { tw0 = GetTickCount(); ilog("walker: entering %ls (depth 0, rank %d)", path, folderRank(nm)); }
         scanDir(path, plen + nl + 1, (int32_t)(base + k), depth + 1);
+        if (depth == 0) ilog("walker: left %ls after %lu ms, %ld items total so far", path, GetTickCount() - tw0, (long)g_count);
         path[plen] = 0;
     }
+    free(ord);
     te.free_(); tp.free_(); rec.free_();
 }
 
@@ -1508,9 +1527,9 @@ static void paint() {
     bool focus = GetFocus() == g_edit;
     if (focus) strokeRR(L.cx, L.py, L.cw, L.ph, L.ph / 2, C(T.accent, 0.85f), 2.f);
     else strokeRR(L.cx, L.py, L.cw, L.ph, L.ph / 2, C(T.border, T.borderA), 1.f);
-    TX(L"\uE721", 1, L.cx + 18, L.py, 28, L.ph, fGlyph, cText2);
+    TX(L"\uE721", 1, L.cx + 16, L.py, 28, L.ph, fGlyph, cText2);
     if (g_query[0]) {                                            // clear (x) button
-        float mx = L.cx + L.cw - 32, my = L.py + L.ph / 2; D2D1_ELLIPSE el = {{mx, my}, 9.f, 9.f}; D2D1_COLOR_F cc = C(T.text2, 0.42f);
+        float mx = L.cx + L.cw - 28, my = L.py + L.ph / 2; D2D1_ELLIPSE el = {{mx, my}, 9.f, 9.f}; D2D1_COLOR_F cc = C(T.text2, 0.42f);
         g_br->SetColor(&cc); g_rt->FillEllipse(&el, g_br); cc = C(T.surface); g_br->SetColor(&cc);
         D2D1_POINT_2F a1 = {mx - 3.2f, my - 3.2f}, a2 = {mx + 3.2f, my + 3.2f}, b1 = {mx - 3.2f, my + 3.2f}, b2 = {mx + 3.2f, my - 3.2f};
         g_rt->DrawLine(a1, a2, g_br, 1.6f); g_rt->DrawLine(b1, b2, g_br, 1.6f);
@@ -1654,12 +1673,13 @@ static void makeEditFonts() {
     g_fontEdit = CreateFontW(-(int)(18 * S + 0.5f), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI Variable Text");
     g_fontRen = CreateFontW(-(int)(14 * S + 0.5f), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI Variable Text");
     SendMessageW(g_edit, WM_SETFONT, (WPARAM)g_fontEdit, TRUE); SendMessageW(g_ren, WM_SETFONT, (WPARAM)g_fontRen, TRUE);
+    { int m = (int)(8 * S + 0.5f); SendMessageW(g_edit, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(m, m)); }
     HDC dc = GetDC(g_edit); HGDIOBJ o = SelectObject(dc, g_fontEdit); TEXTMETRICW tm; GetTextMetricsW(dc, &tm);
     SelectObject(dc, o); ReleaseDC(g_edit, dc); g_editH = tm.tmHeight + 2;
 }
 static void layoutEdit() {
     if (!g_edit) return; Lay L = lay(); float S = g_dpi / 96.f;
-    int x = (int)((L.cx + 54) * S), w = (int)((L.cw - 54 - 52) * S); int y = (int)((L.py + L.ph / 2) * S) - g_editH / 2;
+    int x = (int)((L.cx + 52) * S), w = (int)((L.cw - 52 - 48) * S); int y = (int)((L.py + L.ph / 2) * S) - g_editH / 2;
     SetWindowPos(g_edit, NULL, x, y, w, g_editH, SWP_NOZORDER | SWP_NOACTIVATE);
 }
 static void startAnim() { SetTimer(g_hwnd, 1, 15, NULL); }
@@ -2058,14 +2078,6 @@ static LRESULT CALLBACK editProc(HWND h, UINT m, WPARAM w, LPARAM l) {
             SendMessageW(h, EM_SETSEL, c, s); SendMessageW(h, EM_REPLACESEL, TRUE, (LPARAM)L""); return 0;
         }
         break;
-    case WM_PAINT: {
-        LRESULT r = CallWindowProcW(g_oldEdit, h, m, w, l);
-        if (GetWindowTextLengthW(h) == 0) {
-            HDC dc = GetDC(h); HGDIOBJ o = SelectObject(dc, g_fontEdit); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, CR(T.text2));
-            const wchar_t* ph = L"Search files and folders"; TextOutW(dc, 2, 0, ph, (int)wcslen(ph)); SelectObject(dc, o); ReleaseDC(h, dc);
-        }
-        return r;
-    }
     case WM_SETFOCUS: case WM_KILLFOCUS: { LRESULT r = CallWindowProcW(g_oldEdit, h, m, w, l); invalidate(); return r; }
     }
     return CallWindowProcW(g_oldEdit, h, m, w, l);
@@ -2117,6 +2129,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
         g_edit = CreateWindowExW(0, L"EDIT", L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_LEFT, 0, 0, 100, 24, h, (HMENU)1, g_inst, 0);
         g_ren = CreateWindowExW(0, L"EDIT", L"", WS_CHILD | ES_AUTOHSCROLL | ES_LEFT, 0, 0, 100, 24, h, (HMENU)2, g_inst, 0);
         SendMessageW(g_edit, EM_SETLIMITTEXT, 400, 0);
+        SendMessageW(g_edit, EM_SETCUEBANNER, TRUE, (LPARAM)L"Search files and folders");
         g_oldEdit = (WNDPROC)SetWindowLongPtrW(g_edit, GWLP_WNDPROC, (LONG_PTR)editProc);
         g_oldRen = (WNDPROC)SetWindowLongPtrW(g_ren, GWLP_WNDPROC, (LONG_PTR)renProc);
         makeEditFonts(); applyTheme(); layoutEdit(); setWindowIcons(h); SetFocus(g_edit);
